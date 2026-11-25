@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telif Kalkanı - 6. Sınıf BTY Telif Hakkı Oyunu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Chakra Petch -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tone.js for Procedural Web Audio Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a 60%, #020617);
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-cyber {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        /* Subtle cyber grid pattern */
+        .cyber-grid {
+            background-image: 
+                linear-gradient(to right, rgba(251, 191, 36, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        /* Glassmorphic cyber panel */
+        .cyber-card {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(251, 191, 36, 0.22);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.75), 0 0 18px rgba(251, 191, 36, 0.06);
+        }
+
+        .btn-cyber {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-cyber:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.28);
+        }
+
+        .btn-cyber:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        @keyframes pulse-source {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55); }
+            70% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        .source-pulse {
+            animation: pulse-source 2s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.93); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="cyber-grid flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950">
+
+    <!-- Top Navigation / HUD -->
+    <header class="w-full border-b border-amber-500/20 bg-slate-950/85 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/30">
+                    <i class="fa-regular fa-copyright text-xl font-bold"></i>
+                </div>
+                <div>
+                    <h1 class="font-cyber text-lg sm:text-xl font-bold tracking-wide text-white leading-tight">
+                        TELİF KALKANI <span class="text-amber-400 text-sm font-normal hidden sm:inline">| BTY.6.4.2</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">6. Sınıf Telif Hakkı Sorgulama Akademisi</p>
+                </div>
+            </div>
+
+            <!-- Live Game HUD (Hidden on Start Screen) -->
+            <div id="hud-stats" class="hidden flex items-center gap-2 sm:gap-4">
+                <!-- Shield Energy -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-xl" title="Araştırma Enerjisi">
+                    <span class="text-xs text-slate-400 hidden md:inline">Enerji:</span>
+                    <div id="hearts-container" class="flex gap-1 text-amber-400 text-sm sm:text-base">
+                        <i class="fa-solid fa-bolt"></i>
+                        <i class="fa-solid fa-bolt"></i>
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                </div>
+
+                <!-- Score -->
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                    <span id="score-display" class="font-cyber font-bold text-amber-300 text-sm sm:text-base">0</span>
+                </div>
+
+                <!-- Streak Badge -->
+                <div id="streak-badge" class="hidden sm:flex items-center gap-1 bg-cyan-500/20 border border-cyan-500/40 px-2.5 py-1.5 rounded-xl text-cyan-300 text-xs font-bold">
+                    <i class="fa-solid fa-fire"></i>
+                    <span id="streak-count">0x</span>
+                </div>
+            </div>
+
+            <!-- Controls: Kazanım Info & Sound Toggle -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleOutcomesModal(true)" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs sm:text-sm font-medium flex items-center gap-1.5 transition" title="Ders Kazanımlarını Gör">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span class="hidden sm:inline">Kazanımlar</span>
+                </button>
+                <button id="sound-btn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="Sesi Aç/Kapat">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 flex flex-col justify-center">
+
+        <!-- ================= SCREEN 1: START MENU ================= -->
+        <section id="start-screen" class="cyber-card rounded-3xl p-6 sm:p-10 text-center animate-pop">
+            <div class="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/25 animate-float">
+                <i class="fa-solid fa-scale-balanced text-4xl"></i>
+            </div>
+
+            <span class="inline-block px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold tracking-wider uppercase mb-2">
+                6. Sınıf Bilişim Teknolojileri ve Yazılım
+            </span>
+
+            <p class="text-cyan-300 font-semibold text-sm sm:text-base tracking-wide mb-3">
+                Bilfen Eğitim Kurumları
+            </p>
+
+            <h2 class="font-cyber text-3xl sm:text-4xl font-bold text-white mb-3">
+                Telif Hakkı Sorgulama Akademisi
+            </h2>
+
+            <p class="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base mb-8 leading-relaxed">
+                Dijital içerik üreticilerinin emeğini korumaya hazır mısın? 4 gerçek vakada <strong class="text-amber-300">merak et, soru sor, bilgi topla, doğruluğunu süz ve çıkarım yap</strong> adımlarını tamamlayarak <strong class="text-cyan-300">Telif Kalkanı Rozeti</strong> kazan!
+            </p>
+
+            <!-- 5 Süreç Bileşeni Cards (a, b, c, ç, d) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 mb-8 text-left">
+                <div class="bg-slate-900/85 border border-slate-800 p-3.5 rounded-2xl">
+                    <div class="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase mb-1">
+                        <span class="w-6 h-6 rounded-lg bg-rose-500/20 flex items-center justify-center font-cyber">a</span>
+                        Merak Tanımla
+                    </div>
+                    <p class="text-xs text-slate-300">Telif hakkı ile ilgili merak edilen konuyu belirle.</p>
+                </div>
+
+                <div class="bg-slate-900/85 border border-slate-800 p-3.5 rounded-2xl">
+                    <div class="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase mb-1">
+                        <span class="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center font-cyber">b</span>
+                        Soru Sor
+                    </div>
+                    <p class="text-xs text-slate-300">Konuyu aydınlatacak doğru araştırma sorusunu seç.</p>
+                </div>
+
+                <div class="bg-slate-900/85 border border-slate-800 p-3.5 rounded-2xl">
+                    <div class="flex items-center gap-2 text-cyan-400 font-bold text-xs uppercase mb-1">
+                        <span class="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center font-cyber">c</span>
+                        Bilgi Topla
+                    </div>
+                    <p class="text-xs text-slate-300">Dijital kaynakları inceleyerek verileri topla.</p>
+                </div>
+
+                <div class="bg-slate-900/85 border border-slate-800 p-3.5 rounded-2xl">
+                    <div class="flex items-center gap-2 text-purple-400 font-bold text-xs uppercase mb-1">
+                        <span class="w-6 h-6 rounded-lg bg-purple-500/20 flex items-center justify-center font-cyber">ç</span>
+                        Doğrula
+                    </div>
+                    <p class="text-xs text-slate-300">Toplanan bilgilerin doğruluğunu ve güvenilirliğini değerlendir.</p>
+                </div>
+
+                <div class="bg-slate-900/85 border border-slate-800 p-3.5 rounded-2xl sm:col-span-2 lg:col-span-1">
+                    <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase mb-1">
+                        <span class="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center font-cyber">d</span>
+                        Çıkarım Yap
+                    </div>
+                    <p class="text-xs text-slate-300">Doğru bilgiler üzerinden etik ve yasal çıkarıma ulaş.</p>
+                </div>
+            </div>
+
+            <!-- Player Name Input & Start Button -->
+            <div class="max-w-md mx-auto flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" id="player-name-input" maxlength="24" placeholder="Araştırmacı Adın (Örn: Kerem veya 6-A)" 
+                    class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm">
+                <button onclick="startGame()" class="btn-cyber w-full sm:w-auto whitespace-nowrap px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-cyber font-bold text-base shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> Sorgulamaya Başla
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= SCREEN 2: ACTIVE GAMEPLAY ================= -->
+        <section id="game-screen" class="hidden space-y-5 animate-pop">
+            
+            <!-- Case Header & 5-Step Process Bar -->
+            <div class="cyber-card rounded-2xl p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 w-full lg:w-auto">
+                    <div id="case-badge" class="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/30 text-amber-300 font-cyber font-bold text-sm whitespace-nowrap">
+                        VAKA 1 / 4
+                    </div>
+                    <h2 id="case-title" class="font-bold text-base sm:text-lg text-white truncate">
+                        Okul Videosu ve Popüler Şarkı
+                    </h2>
+                </div>
+
+                <!-- 5-Step Progress Pills (a, b, c, ç, d) -->
+                <div class="grid grid-cols-5 gap-1.5 w-full lg:w-auto">
+                    <div id="pill-0" class="px-2 py-1.5 rounded-xl text-center text-xs font-semibold border transition-all">
+                        <span class="font-cyber">a)</span> Merak
+                    </div>
+                    <div id="pill-1" class="px-2 py-1.5 rounded-xl text-center text-xs font-semibold border transition-all">
+                        <span class="font-cyber">b)</span> Soru
+                    </div>
+                    <div id="pill-2" class="px-2 py-1.5 rounded-xl text-center text-xs font-semibold border transition-all">
+                        <span class="font-cyber">c)</span> Bilgi
+                    </div>
+                    <div id="pill-3" class="px-2 py-1.5 rounded-xl text-center text-xs font-semibold border transition-all">
+                        <span class="font-cyber">ç)</span> Doğrula
+                    </div>
+                    <div id="pill-4" class="px-2 py-1.5 rounded-xl text-center text-xs font-semibold border transition-all">
+                        <span class="font-cyber">d)</span> Çıkarım
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Stage Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                
+                <!-- Left Column: Scenario & Interactive Source Research Panel -->
+                <div class="lg:col-span-5 cyber-card rounded-3xl p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span id="left-panel-header" class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-folder-open"></i> Vaka Dosyası
+                            </span>
+                            <span id="research-status" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                                İnceleme
+                            </span>
+                        </div>
+
+                        <!-- Dynamic Visual Screen (Switches between Case Preview & 3 Research Sources in Step c) -->
+                        <div id="device-mockup" class="rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden shadow-inner mb-4">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Story Summary Box -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5">
+                        <p id="case-story" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            <!-- Story text -->
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right Column: Step Question & Interactive Choices -->
+                <div class="lg:col-span-7 cyber-card rounded-3xl p-5 sm:p-7 flex flex-col justify-between">
+                    <div>
+                        <!-- Active Kazanım Sub-objective Badge -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <span id="step-objective-badge" class="inline-flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                <i class="fa-solid fa-magnifying-glass"></i> BTY.6.4.2.a — Merak Konusunu Tanımla
+                            </span>
+                        </div>
+
+                        <!-- Interactive Source Gathering Banner (Shown on Step c until all 3 sources are clicked) -->
+                        <div id="source-prompt" class="hidden mb-4 p-3.5 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm flex items-center gap-3">
+                            <i class="fa-solid fa-hand-pointer text-xl text-cyan-400 animate-bounce"></i>
+                            <span><strong>Bilgi Toplama Görevi:</strong> Sol taraftaki <strong>3 dijital kaynağın tamamına</strong> tıklayarak telif bilgilerini topla! (<span id="sources-counter">0/3</span>)</span>
+                        </div>
+
+                        <!-- Question Prompt -->
+                        <h3 id="question-text" class="text-lg sm:text-xl font-bold text-white mb-5 leading-snug">
+                            Soru metni buraya gelecek...
+                        </h3>
+
+                        <!-- Options Grid -->
+                        <div id="options-container" class="space-y-3">
+                            <!-- Option buttons injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Instant Pedagogical Feedback Box -->
+                    <div id="feedback-box" class="hidden mt-6 p-4 rounded-2xl border transition-all animate-pop">
+                        <div class="flex items-start gap-3">
+                            <div id="feedback-icon" class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"></div>
+                            <div class="flex-grow">
+                                <h4 id="feedback-title" class="font-bold text-sm sm:text-base mb-1"></h4>
+                                <p id="feedback-text" class="text-xs sm:text-sm leading-relaxed opacity-95"></p>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-end">
+                            <button id="next-step-btn" onclick="nextStep()" class="btn-cyber px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-sm flex items-center gap-2">
+                                <span>Devam Et</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= SCREEN 3: RESULTS & CERTIFICATE ================= -->
+        <section id="result-screen" class="hidden cyber-card rounded-3xl p-6 sm:p-10 text-center animate-pop">
+            <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 shadow-2xl shadow-amber-500/30 animate-float">
+                <i class="fa-solid fa-award text-5xl"></i>
+            </div>
+
+            <span id="result-rank-badge" class="inline-block px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
+                TELİF HAKKI UZMANI
+            </span>
+
+            <h2 class="font-cyber text-2xl sm:text-4xl font-bold text-white mb-2">
+                Tebrikler, <span id="cert-player-name" class="text-amber-400">Araştırmacı</span>!
+            </h2>
+            <p class="text-slate-300 text-sm sm:text-base max-w-xl mx-auto mb-6">
+                Telif hakkı sorgulama basamaklarının tamamını başarıyla uyguladın ve dijital emeğe saygı kalkanını kazandın.
+            </p>
+
+            <!-- Total Score Highlight -->
+            <div class="inline-flex items-center gap-6 bg-slate-900/90 border border-amber-500/30 px-6 py-3.5 rounded-2xl mb-8">
+                <div>
+                    <div class="text-xs text-slate-400">Toplam Puan</div>
+                    <div id="final-score" class="font-cyber text-2xl sm:text-3xl font-bold text-amber-400">0</div>
+                </div>
+                <div class="h-8 w-px bg-slate-800"></div>
+                <div>
+                    <div class="text-xs text-slate-400">Doğruluk Oranı</div>
+                    <div id="final-accuracy" class="font-cyber text-2xl sm:text-3xl font-bold text-emerald-400">%100</div>
+                </div>
+            </div>
+
+            <!-- BTY.6.4.2 Süreç Bileşenleri Mastery Report -->
+            <div class="max-w-3xl mx-auto bg-slate-900/80 border border-slate-800 rounded-2xl p-5 mb-8 text-left">
+                <h3 class="font-cyber text-sm font-bold text-amber-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-simple"></i> BTY.6.4.2 Kazanım Süreç Bileşenleri Karnesi
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5" id="mastery-grid">
+                    <!-- Mastery bars injected via JS -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="restartGame()" class="btn-cyber px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-cyber font-bold text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Yeniden Oyna
+                </button>
+                <button onclick="copySummaryToClipboard()" id="copy-btn" class="btn-cyber px-6 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-copy"></i> Sonuç Raporunu Kopyala
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-900">
+        6. Sınıf Bilişim Teknolojileri ve Yazılım • BTY.6.4.2 Telif Hakkı Kavramını Sorgulayabilme
+    </footer>
+
+    <!-- ================= MODAL: KAZANIM BİLGİSİ ================= -->
+    <div id="outcomes-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="cyber-card max-w-xl w-full rounded-3xl p-6 animate-pop">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <h3 class="font-cyber text-lg font-bold text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open"></i> Ders Kazanımı ve Süreç Bileşenleri
+                </h3>
+                <button onclick="toggleOutcomesModal(false)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-300">
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 font-semibold text-amber-200">
+                    BTY.6.4.2. Telif hakkı kavramını sorgulayabilme
+                </div>
+                <ul class="space-y-2.5 text-xs sm:text-sm">
+                    <li class="flex gap-2.5">
+                        <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold h-fit">a</span>
+                        <span>Telif hakkı kavramı hakkında merak ettiği konuları tanımlar.</span>
+                    </li>
+                    <li class="flex gap-2.5">
+                        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold h-fit">b</span>
+                        <span>Telif hakkı kavramı hakkında sorular sorar.</span>
+                    </li>
+                    <li class="flex gap-2.5">
+                        <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold h-fit">c</span>
+                        <span>Telif hakkı kavramı hakkında bilgi toplar.</span>
+                    </li>
+                    <li class="flex gap-2.5">
+                        <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold h-fit">ç</span>
+                        <span>Telif hakkı kavramı hakkında topladığı bilgilerin doğruluğunu değerlendirir.</span>
+                    </li>
+                    <li class="flex gap-2.5">
+                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold h-fit">d</span>
+                        <span>Telif hakkı kavramı hakkında topladığı bilgiler üzerinden çıkarım yapar.</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="mt-6 text-right">
+                <button onclick="toggleOutcomesModal(false)" class="px-5 py-2 rounded-xl bg-amber-400 text-slate-950 font-bold text-sm">
+                    Anladım
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast-msg" class="hidden fixed bottom-5 right-5 z-50 px-4 py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold shadow-xl flex items-center gap-2 animate-pop">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-text">Kopyalandı!</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. AUDIO SYNTHESIZER (Tone.js)
+        // ==========================================
+        let soundEnabled = true;
+        let synth = null;
+
+        function initAudio() {
+            if (!synth && typeof Tone !== 'undefined') {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -8;
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (!synth) return;
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (type === 'click') {
+                    synth.triggerAttackRelease("D5", "32n", now);
+                } else if (type === 'scan') {
+                    synth.triggerAttackRelease(["F5", "A5"], "16n", now);
+                } else if (type === 'correct') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5"], "16n", now);
+                } else if (type === 'wrong') {
+                    synth.triggerAttackRelease(["E3", "D3"], "8n", now);
+                } else if (type === 'victory') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", now);
+                }
+            } catch (e) {
+                // Ignore audio errors if blocked
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-rose-400';
+        }
+
+        // ==========================================
+        // 2. CURRICULUM CASE DATA (BTY.6.4.2 a, b, c, ç, d)
+        // ==========================================
+        const casesData = [
+            {
+                id: 1,
+                title: "Okul Videosu ve Popüler Şarkı",
+                story: "6. sınıf öğrencisi Kerem, bilişim teknolojileri dersi için hazırladığı tanıtım videosuna sevdiği ünlü bir sanatçının popüler şarkısını ekleyip video platformunda herkese açık paylaşmak ister.",
+                casePreviewHTML: `
+                    <div class="bg-slate-900 px-3 py-2 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span><i class="fa-solid fa-film text-amber-400 mr-1.5"></i>Video Düzenleyici — Proje_Tanitim.mp4</span>
+                        <span class="text-rose-400 font-semibold">Telif Kontrolü</span>
+                    </div>
+                    <div class="p-4 space-y-3 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+                                <i class="fa-solid fa-music"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-white">Eklenen Ses: Popüler_Hit_Sarki.mp3</div>
+                                <div class="text-slate-400 text-[11px]">Durum: Eser sahibinden izin alınmadı!</div>
+                            </div>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px]">
+                            <i class="fa-solid fa-lightbulb mr-1 text-amber-400"></i> Kerem bu şarkıyı videoda yayınlarsa ne olur? Gel birlikte sorgulayalım!
+                        </div>
+                    </div>
+                `,
+                sources: [
+                    {
+                        id: "src1",
+                        badge: "Kaynak 1 • Resmi Mevzuat (FSEK)",
+                        badgeColor: "text-emerald-400",
+                        summary: "Fikir ve sanat eserleri (müzik, video, metin) üretildiği anda telif hakkı koruması altındadır. Eser sahibinin izni olmadan çoğaltılamaz ve internette yayınlanamaz."
+                    },
+                    {
+                        id: "src2",
+                        badge: "Kaynak 2 • Creative Commons Rehberi",
+                        badgeColor: "text-cyan-400",
+                        summary: "Eser sahibi eserini 'CC' (Creative Commons) lisansı ile paylaştıysa, lisans kurallarına (örneğin kaynak gösterme) uyularak ücretsiz kullanılabilir."
+                    },
+                    {
+                        id: "src3",
+                        badge: "Kaynak 3 • Video Yorumu (@MuzikSever99)",
+                        badgeColor: "text-amber-400",
+                        summary: "\"Açıklamaya 'Tüm hakları sahibine aittir, kâr amacı yoktur' yazarsan hiçbir şarkıdan telif cezası almazsın!\""
+                    }
+                ],
+                steps: [
+                    {
+                        code: "a",
+                        badge: "BTY.6.4.2.a — Merak Konusunu Tanımla",
+                        question: "Kerem'in bu durumda telif hakkı kapsamında araştırması gereken temel merak konusu nedir?",
+                        options: [
+                            { text: "Başkasına ait bir müzik eserinin izinsiz olarak videoda kullanılıp paylaşılamayacağı ve eser sahibinin hakları", correct: true },
+                            { text: "Video dosyasının kaç megabayt yer kapladığı", correct: false },
+                            { text: "Bilgisayar hoparlörünün ses kalitesi", correct: false }
+                        ],
+                        feedbackCorrect: "Harika! Sorgulamanın ilk adımı, müzik eserleri üzerindeki telif haklarını ve kullanım sınırlarını merak konusu olarak tanımlamaktır.",
+                        feedbackWrong: "Tekrar düşün! Kerem'in çözmesi gereken temel mesele, başkasına ait bir şarkıyı videoda izinsiz kullanmanın telif kurallarıdır."
+                    },
+                    {
+                        code: "b",
+                        badge: "BTY.6.4.2.b — Soru Sor",
+                        question: "Kerem'in bu konuyu doğru şekilde araştırmak için sorması gereken en etkili soru hangisidir?",
+                        options: [
+                            { text: "Bir müzik eserini videomda kullanmak için eser sahibinden izin almam gerekir mi, yoksa şarkının adını yazmam yeterli midir?", correct: true },
+                            { text: "En sevilen şarkıcı kimdir ve kaç albümü vardır?", correct: false },
+                            { text: "Video düzenleme programı nasıl indirilir?", correct: false }
+                        ],
+                        feedbackCorrect: "Tam isabet! İyi bir sorgulama sorusu doğrudan kuralı ve sınırları araştırır.",
+                        feedbackWrong: "Araştırma sorusu doğrudan telif izni ve kaynak gösterme kurallarına odaklanmalıdır."
+                    },
+                    {
+                        code: "c",
+                        badge: "BTY.6.4.2.c — Bilgi Topla",
+                        requireSources: true,
+                        question: "Sol taraftaki 3 dijital kaynaktan bilgileri topladın. Bu kaynaklar hangi ortak konuda bilgi sunmaktadır?",
+                        options: [
+                            { text: "Müzik eserlerinin telif koruması, izin/lisans şartları ve internette dolaşan yaygın görüşler", correct: true },
+                            { text: "Bilgisayar donanım parçalarının fiyatları", correct: false },
+                            { text: "Oyun içi karakter geliştirme taktikleri", correct: false }
+                        ],
+                        feedbackCorrect: "Güzel! Farklı kaynaklardan (resmi mevzuat, lisans rehberi ve kullanıcı yorumu) konuyla ilgili verileri topladın.",
+                        feedbackWrong: "Topladığımız kaynakların tamamı müzik eserlerinin kullanım şartları ve telif kuralları hakkında bilgi veriyor."
+                    },
+                    {
+                        code: "ç",
+                        badge: "BTY.6.4.2.ç — Bilginin Doğruluğunu Değerlendir",
+                        question: "Topladığın 3 bilgiyi doğruluk açısından değerlendirdiğinde hangi kaynak hatalıdır ve elenmelidir?",
+                        options: [
+                            { text: "Kaynak 3 hatalıdır; çünkü açıklama kısmına 'hakları sahibine aittir' yazmak eser sahibinden alınan yasal izin yerine geçmez", correct: true },
+                            { text: "Kaynak 1 hatalıdır; müziklerin telif hakkı yoktur", correct: false },
+                            { text: "Kaynak 2 hatalıdır; Creative Commons lisansları yasaktır", correct: false }
+                        ],
+                        feedbackCorrect: "Mükemmel süzgeç! Sosyal medyadaki 'hakları sahibine aittir yazarsan telif olmaz' bilgisi yaygın ama yanlış bir şehir efsanesidir.",
+                        feedbackWrong: "Dikkat! Bir eserin sahibinin adını açıklamaya yazmak tek başına telif izni vermez; bu yüzden Kaynak 3 hatalıdır."
+                    },
+                    {
+                        code: "d",
+                        badge: "BTY.6.4.2.d — Çıkarım Yap",
+                        question: "Doğrulanmış bilgiler üzerinden Kerem nasıl bir çıkarım yapmalıdır?",
+                        options: [
+                            { text: "Eser sahibinin izni olmayan popüler şarkılar yerine, CC lisanslı (ücretsiz kullanıma açık) müzikleri kaynak göstererek kullanmalıyım", correct: true },
+                            { text: "Şarkının hızını biraz değiştirirsem izin almama gerek kalmaz", correct: false },
+                            { text: "Videoyu gece yüklersem telif kuralları geçerli olmaz", correct: false }
+                        ],
+                        feedbackCorrect: "Harika çıkarım! Telifli eserlere izinsiz dokunmak yerine Creative Commons lisanslı müzikleri kaynak göstererek kullanmak en doğru yoldur.",
+                        feedbackWrong: "Doğru çıkarım: İzin gerektiren eserler yerine ücretsiz kullanıma açık (CC lisanslı) müzikleri kaynak belirterek kullanmaktır."
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "Arama Motorundaki Görsel Ücretsiz mi?",
+                story: "Selin, dijital afiş tasarımı ödevi için arama motorunda bulduğu güzel bir çizimi indirip üzerine kendi adını yazarak okul yarışmasına göndermeyi düşünür.",
+                casePreviewHTML: `
+                    <div class="bg-slate-900 px-3 py-2 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span><i class="fa-solid fa-image text-cyan-400 mr-1.5"></i>Görsel Arama Sonuçları</span>
+                        <span>Filtre: Tümü</span>
+                    </div>
+                    <div class="p-4 space-y-3 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 text-center">
+                            <i class="fa-solid fa-palette text-3xl text-cyan-400 mb-1.5"></i>
+                            <div class="font-bold text-white">Uzay_Macerasi_Illustrasyon.png</div>
+                            <div class="text-slate-400 text-[11px]">Çizer: Deniz K. (Arama motorunda herkese açık görünüyor)</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-200 text-[11px]">
+                            <i class="fa-solid fa-circle-question mr-1 text-cyan-400"></i> Herkese açık görünen her görsel serbestçe kullanılabilir mi?
+                        </div>
+                    </div>
+                `,
+                sources: [
+                    {
+                        id: "src1",
+                        badge: "Kaynak 1 • Telif Hakları Genel Müdürlüğü",
+                        badgeColor: "text-emerald-400",
+                        summary: "Bir eserin internette herkese açık yayınlanması telifsiz olduğu anlamına gelmez. Ayrıca başkasının eserini kendi eseri gibi sunmak (intihal) ağır bir telif ve etik ihlalidir."
+                    },
+                    {
+                        id: "src2",
+                        badge: "Kaynak 2 • Arama Motoru Yardım Merkezi",
+                        badgeColor: "text-cyan-400",
+                        summary: "Görsel aramalarında 'Araçlar -> Kullanım Hakları -> Creative Commons Lisansları' filtresi seçilerek paylaşım izni verilmiş görsellere ulaşılabilir."
+                    },
+                    {
+                        id: "src3",
+                        badge: "Kaynak 3 • Forum Yorumu (@HizliTasarim)",
+                        badgeColor: "text-amber-400",
+                        summary: "\"Arama motorunda çıkan her resim halka açıktır; üzerinde logo veya filigran yoksa kendi çizimin gibi kullanabilirsin.\""
+                    }
+                ],
+                steps: [
+                    {
+                        code: "a",
+                        badge: "BTY.6.4.2.a — Merak Konusunu Tanımla",
+                        question: "Selin'in bu durumda tanımlaması gereken merak konusu nedir?",
+                        options: [
+                            { text: "İnternet aramalarında herkesin görebildiği görsellerin kullanım hakları ve başkasının eserini kendi adıma sunmanın telif kuralları", correct: true },
+                            { text: "PNG ve JPG dosya uzantılarının boyut farkı", correct: false },
+                            { text: "Yazıcıdan renkli çıktı alma ayarları", correct: false }
+                        ],
+                        feedbackCorrect: "Doğru! Görsellerin internette erişilebilir olması ile yasal kullanım hakkı arasındaki farkı sorgulamak temel merak konusudur.",
+                        feedbackWrong: "Merak konusu dosya boyutu değil, internetteki görsellerin telif hakkı ve intihal kurallarıdır."
+                    },
+                    {
+                        code: "b",
+                        badge: "BTY.6.4.2.b — Soru Sor",
+                        question: "Bu merak konusunu araştırmak için hangi soru sorulmalıdır?",
+                        options: [
+                            { text: "Arama motorunda herkese açık görünen bir görselin telifli olup olmadığını nasıl anlarım ve başkasının çizimini kendi adıma sunabilir miyim?", correct: true },
+                            { text: "En hızlı internet tarayıcısı hangisidir?", correct: false },
+                            { text: "Afiş boyutları kaç santimetre olmalıdır?", correct: false }
+                        ],
+                        feedbackCorrect: "Harika soru! Hem lisans kontrolünü hem de eser sahipliği etiğini doğrudan sorguluyor.",
+                        feedbackWrong: "Araştırma sorumuz görselin lisans durumunu ve eser sahipliği hakkını sorgulamalıdır."
+                    },
+                    {
+                        code: "c",
+                        badge: "BTY.6.4.2.c — Bilgi Topla",
+                        requireSources: true,
+                        question: "3 dijital kaynaktan bilgileri topladın. Bu kaynaklar hangi iki temel kavram üzerinde duruyor?",
+                        options: [
+                            { text: "Görsellerin telif koruması/intihal yasağı ve Creative Commons kullanım hakları filtresi", correct: true },
+                            { text: "Ekran çözünürlüğü ve monitör yenileme hızı", correct: false },
+                            { text: "Sosyal medya takipçi artırma yöntemleri", correct: false }
+                        ],
+                        feedbackCorrect: "Doğru! Kaynaklardan hem intihal kuralını hem de arama motorundaki lisans filtresini öğrendik.",
+                        feedbackWrong: "Toplanan bilgiler görsellerin telif koruması, intihal ve kullanım hakları filtreleriyle ilgilidir."
+                    },
+                    {
+                        code: "ç",
+                        badge: "BTY.6.4.2.ç — Bilginin Doğruluğunu Değerlendir",
+                        question: "Toplanan bilgilerin doğruluğunu değerlendirdiğimizde hangi kaynak yanlıştır?",
+                        options: [
+                            { text: "Kaynak 3 yanlıştır; üzerinde logo olmasa bile bir görsel eser sahibine aittir ve kendi eserin gibi sunmak intihaldir", correct: true },
+                            { text: "Kaynak 1 yanlıştır; internetteki her şey sahipsizdir", correct: false },
+                            { text: "Kaynak 2 yanlıştır; arama motorlarında lisans filtresi yoktur", correct: false }
+                        ],
+                        feedbackCorrect: "Kesinlikle! Üzerinde filigran olmaması eseri sahipsiz yapmaz; başkasının eserine kendi adını yazmak intihaldir.",
+                        feedbackWrong: "Kaynak 3 yanlış bilgi veriyor! Görselin üzerinde logo olmasa bile telif hakkı çizerine aittir."
+                    },
+                    {
+                        code: "d",
+                        badge: "BTY.6.4.2.d — Çıkarım Yap",
+                        question: "Doğru bilgiler ışığında Selin'in ulaşacağı temel çıkarım nedir?",
+                        options: [
+                            { text: "İnternetteki her görsel ücretsiz değildir; yalnızca kullanım izni (CC lisansı) olan görselleri kaynak göstererek kullanmalı, kendi özgün tasarımımı yapmalıyım", correct: true },
+                            { text: "Görselin rengini değiştirirsem kendi çizimim sayılır", correct: false },
+                            { text: "Sadece küçük boyutlu görselleri izinsiz kullanabilirim", correct: false }
+                        ],
+                        feedbackCorrect: "Süper çıkarım! Özgünlük ve kaynak gösterme dijital vatandaşlığın temel kuralıdır.",
+                        feedbackWrong: "Doğru çıkarım: Kullanım hakları filtresiyle izinli görsel bulmak, kaynak belirtmek ve asla intihal yapmamaktır."
+                    }
+                ]
+            },
+            {
+                id: 3,
+                title: "Creative Commons (CC) Etiketleri",
+                story: "Arda, okul kulübünün ücretsiz web sitesi için doğa fotoğrafları ararken beğendiği bir fotoğrafın altında 'CC BY-NC' lisans etiketini görür.",
+                casePreviewHTML: `
+                    <div class="bg-slate-900 px-3 py-2 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span><i class="fa-solid fa-camera text-emerald-400 mr-1.5"></i>Açık Lisanslı Fotoğraf Arşivi</span>
+                        <span class="font-mono text-amber-300">Lisans: CC BY-NC</span>
+                    </div>
+                    <div class="p-4 space-y-3 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-white">Kuzey_Ormanlari.jpg</div>
+                                <div class="text-slate-400 text-[11px]">Fotoğrafçı: Mert Y.</div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-cyber font-bold">
+                                CC BY-NC
+                            </span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-[11px]">
+                            <i class="fa-solid fa-tags mr-1 text-emerald-400"></i> 'BY' ve 'NC' kısaltmaları bize hangi kuralları hatırlatır?
+                        </div>
+                    </div>
+                `,
+                sources: [
+                    {
+                        id: "src1",
+                        badge: "Kaynak 1 • Creative Commons Türkiye Rehberi",
+                        badgeColor: "text-emerald-400",
+                        summary: "BY (Atıf): Eser sahibinin adını kaynak olarak belirtmek zorunludur. NC (Non-Commercial): Eser yalnızca ticari olmayan (para kazanma amacı taşımayan) işlerde kullanılabilir."
+                    },
+                    {
+                        id: "src2",
+                        badge: "Kaynak 2 • Dijital Okuryazarlık El Kitabı",
+                        badgeColor: "text-cyan-400",
+                        summary: "Okul ödevleri ve kar amacı gütmeyen eğitim sayfaları ticari olmayan (NC) kullanım sayılır; ancak eser sahibine atıf (kaynakça) yine eklenmelidir."
+                    },
+                    {
+                        id: "src3",
+                        badge: "Kaynak 3 • Sosyal Medya Gönderisi",
+                        badgeColor: "text-amber-400",
+                        summary: "\"CC yazan her fotoğrafı isim bile yazmadan tişörtlere basıp satabilirsiniz, hiçbir kuralı yoktur.\""
+                    }
+                ],
+                steps: [
+                    {
+                        code: "a",
+                        badge: "BTY.6.4.2.a — Merak Konusunu Tanımla",
+                        question: "Arda'nın bu görselde karşılaştığı merak konusu nedir?",
+                        options: [
+                            { text: "Creative Commons (CC) lisans türlerinin ve üzerindeki sembollerin kullanıcıya hangi hakları ve sınırları tanıdığı", correct: true },
+                            { text: "Fotoğraf makinesinin objektif markası", correct: false },
+                            { text: "Web sitesinin arka plan rengi", correct: false }
+                        ],
+                        feedbackCorrect: "Doğru! Lisans etiketlerinin anlamını merak konusu olarak tanımlamak doğru kullanımın ilk adımıdır.",
+                        feedbackWrong: "Arda'nın araştırması gereken konu 'CC BY-NC' lisans etiketinin tanıdığı izinler ve sınırlardır."
+                    },
+                    {
+                        code: "b",
+                        badge: "BTY.6.4.2.b — Soru Sor",
+                        question: "Arda bu lisans etiketini doğru anlamak için hangi soruyu sormalıdır?",
+                        options: [
+                            { text: "CC BY-NC lisansındaki 'BY' ve 'NC' kısaltmaları fotoğrafı hangi şartlarla ve hangi amaçlarla kullanabileceğimi gösterir?", correct: true },
+                            { text: "Bu fotoğraf hangi mevsimde çekilmiştir?", correct: false },
+                            { text: "Fotoğrafı bilgisayara nasıl kaydederim?", correct: false }
+                        ],
+                        feedbackCorrect: "Tam isabet! Sembollerin koşullarını soran hedef odaklı bir soru.",
+                        feedbackWrong: "Sorumuz doğrudan 'BY' ve 'NC' kısaltmalarının kullanım şartlarını öğrenmeye yönelik olmalıdır."
+                    },
+                    {
+                        code: "c",
+                        badge: "BTY.6.4.2.c — Bilgi Topla",
+                        requireSources: true,
+                        question: "3 kaynaktan bilgileri topladın. Güvenilir rehberlere göre 'BY' ve 'NC' ne anlama gelmektedir?",
+                        options: [
+                            { text: "BY: Eser sahibine atıf (kaynak) gösterme zorunluluğu; NC: Ticari olmayan kullanım şartı", correct: true },
+                            { text: "BY: Sadece beyaz renkte kullanma; NC: İnternetsiz kullanma", correct: false },
+                            { text: "BY: Ücret ödeme zorunluluğu; NC: Sadece gece paylaşma", correct: false }
+                        ],
+                        feedbackCorrect: "Harika! Kaynaklardan 'BY' (Atıf) ve 'NC' (Ticari Olmayan) kavramlarının tam karşılığını topladın.",
+                        feedbackWrong: "Kaynak 1'e tekrar göz at: BY = Atıf (isim belirtme), NC = Non-Commercial (ticari olmayan)."
+                    },
+                    {
+                        code: "ç",
+                        badge: "BTY.6.4.2.ç — Bilginin Doğruluğunu Değerlendir",
+                        question: "Toplanan kaynaklar değerlendirildiğinde hangi bilginin yanlış olduğu görülür?",
+                        options: [
+                            { text: "Kaynak 3 yanlıştır; 'BY' isim belirtmeyi zorunlu kılar ve 'NC' etiketi ticari satışı yasaklar", correct: true },
+                            { text: "Kaynak 1 yanlıştır; CC lisansları hiçbir şart içermez", correct: false },
+                            { text: "Kaynak 2 yanlıştır; okul ödevleri ticari faaliyet sayılır", correct: false }
+                        ],
+                        feedbackCorrect: "Çok iyi! CC lisansı 'kuralsız kullanım' demek değildir; eser sahibinin belirlediği şartlara uymak zorunludur.",
+                        feedbackWrong: "Kaynak 3 hatalıdır; hem isim belirtmemek hem de NC lisanslı bir eseri satmak lisans ihlalidir."
+                    },
+                    {
+                        code: "d",
+                        badge: "BTY.6.4.2.d — Çıkarım Yap",
+                        question: "Arda, okul kulübünün ücretsiz web sitesi için bu bilgi üzerinden nasıl bir çıkarım yapar?",
+                        options: [
+                            { text: "Okul sitesi ticari bir amaç taşımadığı için fotoğrafı kullanabilirim; ancak fotoğrafçının adını ve lisans bilgisini mutlaka kaynak olarak eklemeliyim", correct: true },
+                            { text: "Fotoğrafı kullanabilirim ama hiçbir kaynak yazmama gerek yok", correct: false },
+                            { text: "Okul sitesinde bile kesinlikle kullanamam", correct: false }
+                        ],
+                        feedbackCorrect: "Mükemmel çıkarım! Hem NC (ticari olmama) hem de BY (kaynak gösterme) şartını eksiksiz yerine getirdin.",
+                        feedbackWrong: "Okul sitesi ticari olmadığı için NC şartına uygundur, ancak BY şartı gereği fotoğrafçının adını mutlaka yazmalısın."
+                    }
+                ]
+            },
+            {
+                id: 4,
+                title: "Korsan Yazılım ve Dijital Kitap Paylaşımı",
+                story: "Ece, sınıf mesajlaşma grubunda bir arkadaşının 'Ücretli çizim programının kırılmış (crack) kurulum dosyasını ve popüler romanın PDF kopyasını buldum, herkese atıyorum!' yazdığını görür.",
+                casePreviewHTML: `
+                    <div class="bg-slate-900 px-3 py-2 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span><i class="fa-solid fa-comments text-purple-400 mr-1.5"></i>Sınıf Sohbet Grubu</span>
+                        <span class="text-rose-400">Dosya Paylaşımı</span>
+                    </div>
+                    <div class="p-4 space-y-2.5 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200">
+                            <span class="text-purple-400 font-bold block mb-1">Grup Üyesi:</span>
+                            "Ücretli tasarım yazılımının kırılmış dosyasını ve yeni çıkan romanın PDF'ini ücretsiz paylaşıyorum, herkes indirsin!"
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-[11px]">
+                            <i class="fa-solid fa-shield-virus mr-1 text-rose-400"></i> Yazılımlar ve dijital kitaplar da telif hakkı kapsamında mıdır?
+                        </div>
+                    </div>
+                `,
+                sources: [
+                    {
+                        id: "src1",
+                        badge: "Kaynak 1 • 5846 Sayılı Fikir ve Sanat Eserleri Kanunu",
+                        badgeColor: "text-emerald-400",
+                        summary: "Bilgisayar programları ve yazılımlar tıpkı kitap, müzik ve sinema eserleri gibi ilim ve edebiyat eseri sayılarak telif hakkıyla korunur."
+                    },
+                    {
+                        id: "src2",
+                        badge: "Kaynak 2 • Bilişim Hukuku ve Güvenlik Rehberi",
+                        badgeColor: "text-cyan-400",
+                        summary: "Lisanslı bir yazılımı veya kitabı izinsiz çoğaltıp dağıtmak dijital korsanlık suçudur; ayrıca kırılmış (crack) dosyalar cihazlara zararlı yazılım bulaştırır."
+                    },
+                    {
+                        id: "src3",
+                        badge: "Kaynak 3 • Oyun Forumu Yorumu",
+                        badgeColor: "text-amber-400",
+                        summary: "\"Bir programı bir kişi satın aldıktan sonra dosyasını 100 arkadaşına göndermesi tamamen yasaldır; telif sadece basılı kitaplarda vardır.\""
+                    }
+                ],
+                steps: [
+                    {
+                        code: "a",
+                        badge: "BTY.6.4.2.a — Merak Konusunu Tanımla",
+                        question: "Ece'nin bu olayda sorgulaması gereken telif hakkı konusu nedir?",
+                        options: [
+                            { text: "Bilgisayar yazılımlarının ve dijital kitapların telif hakkı koruması altında olup olmadığı ve izinsiz dağıtılmasının sonuçları", correct: true },
+                            { text: "Mesajlaşma grubunda kaç kişi olduğu", correct: false },
+                            { text: "PDF dosyalarının yazı tipi boyutu", correct: false }
+                        ],
+                        feedbackCorrect: "Doğru! Yazılımların ve dijital yayınların da telif kapsamına girip girmediğini tanımlamak doğru başlangıçtır.",
+                        feedbackWrong: "Ece'nin sorgulaması gereken temel konu, yazılımların ve e-kitapların telif koruması ve izinsiz paylaşımıdır."
+                    },
+                    {
+                        code: "b",
+                        badge: "BTY.6.4.2.b — Soru Sor",
+                        question: "Ece'nin bu durumu araştırmak için sorması gereken en uygun soru hangisidir?",
+                        options: [
+                            { text: "Yazılımlar ve dijital kitaplar telif hakkı kanunuyla korunur mu ve ücretli bir eseri ücretsiz dağıtmak telif suçu mudur?", correct: true },
+                            { text: "Romanın ana karakterinin adı nedir?", correct: false },
+                            { text: "Bilgisayar hard diski nasıl temizlenir?", correct: false }
+                        ],
+                        feedbackCorrect: "Harika soru! Hem yasal korumayı hem de izinsiz dağıtımın sonucunu açıkça sorguluyor.",
+                        feedbackWrong: "Araştırma sorumuz yazılımların telif kanunundaki yerini ve izinsiz paylaşımın suç olup olmadığını sormalıdır."
+                    },
+                    {
+                        code: "c",
+                        badge: "BTY.6.4.2.c — Bilgi Topla",
+                        requireSources: true,
+                        question: "3 kaynaktan bilgileri topladın. Kanuna göre bilgisayar yazılımları hangi eser türü kapsamında korunur?",
+                        options: [
+                            { text: "İlim ve edebiyat eseri sayılarak tıpkı kitap ve müzik gibi telif hakkıyla korunur", correct: true },
+                            { text: "Hiçbir kanun kapsamında korunmaz", correct: false },
+                            { text: "Sadece devlet kurumlarının yazılımları korunur", correct: false }
+                        ],
+                        feedbackCorrect: "Doğru! 5846 sayılı kanuna göre yazılımlar da fikir ve sanat eseri olarak koruma altındadır.",
+                        feedbackWrong: "Kaynak 1'e göre bilgisayar programları da ilim ve edebiyat eseri sayılarak telif hakkıyla korunur."
+                    },
+                    {
+                        code: "ç",
+                        badge: "BTY.6.4.2.ç — Bilginin Doğruluğunu Değerlendir",
+                        question: "Kaynakların doğruluğu değerlendirildiğinde hangi bilginin yanlış olduğu ortaya çıkar?",
+                        options: [
+                            { text: "Kaynak 3 yanlıştır; telif hakkı hem fiziksel hem dijital tüm eserleri ve yazılımları kapsar, izinsiz çoğaltıp dağıtmak dijital korsanlıktır", correct: true },
+                            { text: "Kaynak 1 yanlıştır; yazılımlar kanunla korunmaz", correct: false },
+                            { text: "Kaynak 2 yanlıştır; crack dosyalar tamamen güvenlidir", correct: false }
+                        ],
+                        feedbackCorrect: "Tam isabet! Bir yazılımı satın almak onu yüzlerce kişiye kopyalayıp dağıtma hakkı vermez.",
+                        feedbackWrong: "Kaynak 3 hatalıdır; dijital dosyaların izinsiz çoğaltılması dijital korsanlık suçudur."
+                    },
+                    {
+                        code: "d",
+                        badge: "BTY.6.4.2.d — Çıkarım Yap",
+                        question: "Toplanan doğru bilgilerden hareketle Ece nasıl bir çıkarım yapmalıdır?",
+                        options: [
+                            { text: "Yazılımlar ve kitaplar da emeğin ürünü olan telifli eserlerdir; korsan dosya indirmek/paylaşmak yerine açık kaynaklı ve ücretsiz yasal alternatifleri tercih etmeliyim", correct: true },
+                            { text: "Dosyayı indirip sadece kendi bilgisayarımda kullanırsam sorun olmaz", correct: false },
+                            { text: "Gruptaki herkese teşekkür edip dosyaları yaymalıyım", correct: false }
+                        ],
+                        feedbackCorrect: "Harika bir dijital vatandaş çıkarımı! Korsan içerik yerine açık kaynaklı/ücretsiz yasal yazılımları (GIMP, Scratch, LibreOffice vb.) kullanmak hem etik hem güvenlidir.",
+                        feedbackWrong: "Korsan yazılımlar hem emeğe saygısızlıktır hem de virüs riski taşır; bunun yerine ücretsiz ve yasal açık kaynak yazılımlar tercih edilmelidir."
+                    }
+                ]
+            }
+        ];
+
+        // ==========================================
+        // 3. GAME STATE
+        // ==========================================
+        let gameState = {
+            playerName: "Araştırmacı",
+            currentCaseIndex: 0,
+            currentStepIndex: 0,
+            score: 0,
+            lives: 3,
+            streak: 0,
+            clickedSources: new Set(),
+            stepAnswered: false,
+            stats: {
+                a: { correct: 0, total: 0, label: "a) Merak Konusunu Tanımlama" },
+                b: { correct: 0, total: 0, label: "b) Telif Hakkı Hakkında Soru Sorma" },
+                c: { correct: 0, total: 0, label: "c) Bilgi Toplama" },
+                ç: { correct: 0, total: 0, label: "ç) Bilginin Doğruluğunu Değerlendirme" },
+                d: { correct: 0, total: 0, label: "d) Bilgiler Üzerinden Çıkarım Yapma" }
+            }
+        };
+
+        // ==========================================
+        // 4. CORE FUNCTIONS
+        // ==========================================
+        function startGame() {
+            playSound('click');
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            gameState.playerName = nameInput || "Genç Araştırmacı";
+            gameState.currentCaseIndex = 0;
+            gameState.currentStepIndex = 0;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.streak = 0;
+            gameState.clickedSources = new Set();
+            gameState.stats = {
+                a: { correct: 0, total: 0, label: "a) Merak Konusunu Tanımlama" },
+                b: { correct: 0, total: 0, label: "b) Telif Hakkı Hakkında Soru Sorma" },
+                c: { correct: 0, total: 0, label: "c) Bilgi Toplama" },
+                ç: { correct: 0, total: 0, label: "ç) Bilginin Doğruluğunu Değerlendirme" },
+                d: { correct: 0, total: 0, label: "d) Bilgiler Üzerinden Çıkarım Yapma" }
+            };
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('hud-stats').classList.remove('hidden');
+
+            updateHUD();
+            renderCurrentStep();
+        }
+
+        function restartGame() {
+            playSound('click');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('hud-stats').classList.add('hidden');
+        }
+
+        function updateHUD() {
+            document.getElementById('score-display').textContent = gameState.score;
+
+            const heartsContainer = document.getElementById('hearts-container');
+            heartsContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < gameState.lives) {
+                    heartsContainer.innerHTML += '<i class="fa-solid fa-bolt text-amber-400"></i>';
+                } else {
+                    heartsContainer.innerHTML += '<i class="fa-solid fa-bolt text-slate-700"></i>';
+                }
+            }
+
+            const streakBadge = document.getElementById('streak-badge');
+            if (gameState.streak >= 2) {
+                streakBadge.classList.remove('hidden');
+                document.getElementById('streak-count').textContent = gameState.streak + 'x Seri';
+            } else {
+                streakBadge.classList.add('hidden');
+            }
+        }
+
+        function renderCurrentStep() {
+            const currentCase = casesData[gameState.currentCaseIndex];
+            const currentStep = currentCase.steps[gameState.currentStepIndex];
+
+            gameState.stepAnswered = false;
+            if (gameState.currentStepIndex === 0) {
+                gameState.clickedSources = new Set();
+            }
+
+            // Update Header Info
+            document.getElementById('case-badge').textContent = `VAKA ${gameState.currentCaseIndex + 1} / ${casesData.length}`;
+            document.getElementById('case-title').textContent = currentCase.title;
+            document.getElementById('case-story').textContent = currentCase.story;
+
+            // Update 5-Step Progress Pills
+            for (let i = 0; i < 5; i++) {
+                const pill = document.getElementById(`pill-${i}`);
+                if (i < gameState.currentStepIndex) {
+                    pill.className = "px-2 py-1.5 rounded-xl text-center text-xs font-semibold border bg-emerald-500/20 border-emerald-500/40 text-emerald-300";
+                } else if (i === gameState.currentStepIndex) {
+                    pill.className = "px-2 py-1.5 rounded-xl text-center text-xs font-bold border bg-amber-500/25 border-amber-400 text-amber-200 shadow-sm shadow-amber-500/20";
+                } else {
+                    pill.className = "px-2 py-1.5 rounded-xl text-center text-xs font-semibold border bg-slate-900/60 border-slate-800 text-slate-500";
+                }
+            }
+
+            // Objective Badge & Question
+            document.getElementById('step-objective-badge').innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> ${currentStep.badge}`;
+            document.getElementById('question-text').textContent = currentStep.question;
+            document.getElementById('feedback-box').classList.add('hidden');
+
+            // Left Panel Content: For steps a & b show Case Preview; for steps c, ç, d show the 3 Research Sources!
+            const deviceMockup = document.getElementById('device-mockup');
+            const leftHeader = document.getElementById('left-panel-header');
+            const researchStatus = document.getElementById('research-status');
+            const sourcePrompt = document.getElementById('source-prompt');
+            const optionsContainer = document.getElementById('options-container');
+
+            if (gameState.currentStepIndex < 2) {
+                leftHeader.innerHTML = '<i class="fa-solid fa-folder-open"></i> Vaka Dosyası';
+                researchStatus.className = "text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                researchStatus.textContent = "Durum Analizi";
+                deviceMockup.innerHTML = currentCase.casePreviewHTML;
+                sourcePrompt.classList.add('hidden');
+                optionsContainer.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                leftHeader.innerHTML = '<i class="fa-solid fa-database"></i> Dijital Kaynak Havuzu';
+                renderSourcesPanel(currentCase);
+
+                if (currentStep.requireSources && gameState.clickedSources.size < currentCase.sources.length) {
+                    sourcePrompt.classList.remove('hidden');
+                    document.getElementById('sources-counter').textContent = `${gameState.clickedSources.size}/${currentCase.sources.length}`;
+                    researchStatus.className = "text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 animate-pulse";
+                    researchStatus.textContent = "Kaynakları Oku";
+                    optionsContainer.classList.add('opacity-40', 'pointer-events-none');
+                } else {
+                    sourcePrompt.classList.add('hidden');
+                    researchStatus.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                    researchStatus.textContent = "Bilgiler Toplandı";
+                    optionsContainer.classList.remove('opacity-40', 'pointer-events-none');
+                }
+            }
+
+            // Render Shuffled Options
+            const shuffledOptions = [...currentStep.options].sort(() => Math.random() - 0.5);
+            optionsContainer.innerHTML = '';
+
+            const letters = ['A', 'B', 'C'];
+            shuffledOptions.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "btn-cyber w-full text-left p-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-amber-400/60 text-slate-200 text-sm sm:text-base flex items-center gap-3.5 group";
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded-xl bg-slate-800 group-hover:bg-amber-400 group-hover:text-slate-950 font-cyber font-bold text-amber-400 flex items-center justify-center flex-shrink-0 transition">
+                        ${letters[idx]}
+                    </span>
+                    <span class="leading-snug">${opt.text}</span>
+                `;
+                btn.onclick = () => handleOptionSelect(opt.correct, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function renderSourcesPanel(currentCase) {
+            const deviceMockup = document.getElementById('device-mockup');
+            let html = `<div class="p-3 space-y-2.5">`;
+
+            currentCase.sources.forEach((src, index) => {
+                const isRead = gameState.clickedSources.has(src.id);
+                if (isRead) {
+                    html += `
+                        <div class="p-3 rounded-xl bg-slate-900/95 border border-emerald-500/40 text-xs animate-pop">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold ${src.badgeColor}">${src.badge}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
+                                    <i class="fa-solid fa-check mr-1"></i>Okundu
+                                </span>
+                            </div>
+                            <p class="text-slate-200 leading-relaxed">${src.summary}</p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <button onclick="inspectSource('${src.id}')" class="source-pulse w-full text-left p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-cyan-500/50 text-xs flex items-center justify-between transition">
+                            <div>
+                                <span class="font-bold ${src.badgeColor} block">${src.badge}</span>
+                                <span class="text-slate-400 text-[11px]">İçeriği görüntülemek ve bilgi toplamak için tıkla</span>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold text-[11px] whitespace-nowrap ml-2">
+                                <i class="fa-solid fa-eye mr-1"></i>Aç
+                            </span>
+                        </button>
+                    `;
+                }
+            });
+
+            html += `</div>`;
+            deviceMockup.innerHTML = html;
+        }
+
+        function inspectSource(sourceId) {
+            const currentCase = casesData[gameState.currentCaseIndex];
+            if (!gameState.clickedSources.has(sourceId)) {
+                playSound('scan');
+                gameState.clickedSources.add(sourceId);
+                gameState.score += 15;
+                updateHUD();
+            }
+
+            renderSourcesPanel(currentCase);
+
+            const count = gameState.clickedSources.size;
+            const total = currentCase.sources.length;
+            const counterEl = document.getElementById('sources-counter');
+            if (counterEl) {
+                counterEl.textContent = `${count}/${total}`;
+            }
+
+            if (count >= total) {
+                document.getElementById('source-prompt').classList.add('hidden');
+                const researchStatus = document.getElementById('research-status');
+                researchStatus.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                researchStatus.textContent = "Bilgiler Toplandı";
+
+                const optionsContainer = document.getElementById('options-container');
+                optionsContainer.classList.remove('opacity-40', 'pointer-events-none');
+                optionsContainer.classList.add('animate-pop');
+            }
+        }
+
+        function handleOptionSelect(isCorrect, clickedBtn) {
+            if (gameState.stepAnswered) return;
+            gameState.stepAnswered = true;
+
+            const currentCase = casesData[gameState.currentCaseIndex];
+            const currentStep = currentCase.steps[gameState.currentStepIndex];
+            const subCode = currentStep.code;
+
+            gameState.stats[subCode].total += 1;
+
+            const allBtns = document.getElementById('options-container').querySelectorAll('button');
+            allBtns.forEach(b => b.disabled = true);
+
+            const feedbackBox = document.getElementById('feedback-box');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+
+            if (isCorrect) {
+                playSound('correct');
+                gameState.stats[subCode].correct += 1;
+                gameState.streak += 1;
+                const bonus = gameState.streak >= 2 ? 20 : 0;
+                gameState.score += (100 + bonus);
+
+                clickedBtn.className = "w-full text-left p-4 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-100 text-sm sm:text-base flex items-center gap-3.5";
+                clickedBtn.querySelector('span').className = "w-8 h-8 rounded-xl bg-emerald-400 text-slate-950 font-cyber font-bold flex items-center justify-center flex-shrink-0";
+                clickedBtn.querySelector('span').innerHTML = '<i class="fa-solid fa-check"></i>';
+
+                feedbackBox.className = "mt-6 p-4 rounded-2xl border bg-emerald-950/60 border-emerald-500/50 text-emerald-100 animate-pop";
+                feedbackIcon.className = "w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 text-lg";
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                feedbackTitle.textContent = bonus > 0 ? `Harika Sorgulama! (+100 Puan +${bonus} Seri Bonusu)` : "Doğru Adım! (+100 Puan)";
+                feedbackText.textContent = currentStep.feedbackCorrect;
+            } else {
+                playSound('wrong');
+                gameState.streak = 0;
+                if (gameState.lives > 1) {
+                    gameState.lives -= 1;
+                }
+
+                clickedBtn.className = "w-full text-left p-4 rounded-2xl bg-rose-500/20 border-2 border-rose-500 text-rose-100 text-sm sm:text-base flex items-center gap-3.5 animate-shake";
+                clickedBtn.querySelector('span').className = "w-8 h-8 rounded-xl bg-rose-500 text-white font-cyber font-bold flex items-center justify-center flex-shrink-0";
+                clickedBtn.querySelector('span').innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+                feedbackBox.className = "mt-6 p-4 rounded-2xl border bg-rose-950/60 border-rose-500/50 text-rose-100 animate-pop";
+                feedbackIcon.className = "w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 text-lg";
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                feedbackTitle.textContent = "Tekrar Değerlendirelim!";
+                feedbackText.textContent = currentStep.feedbackWrong;
+            }
+
+            updateHUD();
+            feedbackBox.classList.remove('hidden');
+
+            const nextBtn = document.getElementById('next-step-btn');
+            const isLastStepOfCase = gameState.currentStepIndex === currentCase.steps.length - 1;
+            const isLastCase = gameState.currentCaseIndex === casesData.length - 1;
+
+            if (isLastStepOfCase && isLastCase) {
+                nextBtn.innerHTML = '<span>Sorgulama Karnesini Gör</span> <i class="fa-solid fa-award"></i>';
+            } else if (isLastStepOfCase) {
+                nextBtn.innerHTML = '<span>Sonraki Vakaya Geç</span> <i class="fa-solid fa-forward"></i>';
+            } else {
+                nextBtn.innerHTML = '<span>Sonraki Basamağa Geç</span> <i class="fa-solid fa-arrow-right"></i>';
+            }
+        }
+
+        function nextStep() {
+            playSound('click');
+            const currentCase = casesData[gameState.currentCaseIndex];
+
+            if (gameState.currentStepIndex < currentCase.steps.length - 1) {
+                gameState.currentStepIndex += 1;
+                renderCurrentStep();
+            } else if (gameState.currentCaseIndex < casesData.length - 1) {
+                gameState.currentCaseIndex += 1;
+                gameState.currentStepIndex = 0;
+                if (gameState.lives < 3) {
+                    gameState.lives += 1;
+                    updateHUD();
+                }
+                renderCurrentStep();
+            } else {
+                showResults();
+            }
+        }
+
+        // ==========================================
+        // 5. RESULTS & ANALYTICS REPORT
+        // ==========================================
+        function showResults() {
+            playSound('victory');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('hud-stats').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            document.getElementById('cert-player-name').textContent = gameState.playerName;
+            document.getElementById('final-score').textContent = gameState.score;
+
+            let totalCorrect = 0;
+            let totalQuestions = 0;
+            Object.values(gameState.stats).forEach(s => {
+                totalCorrect += s.correct;
+                totalQuestions += s.total;
+            });
+
+            const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+            document.getElementById('final-accuracy').textContent = `%${accuracy}`;
+
+            const rankBadge = document.getElementById('result-rank-badge');
+            if (accuracy >= 85) {
+                rankBadge.textContent = "BAŞ TELİF ARAŞTIRMACISI • ALTIN ROZET";
+                rankBadge.className = "inline-block px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-bold uppercase tracking-wider mb-2";
+            } else if (accuracy >= 60) {
+                rankBadge.textContent = "BİLİNÇLİ DİJİTAL ÜRETİCİ • GÜMÜŞ ROZET";
+                rankBadge.className = "inline-block px-3.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-2";
+            } else {
+                rankBadge.textContent = "TELİF KEŞİFÇİSİ • GELİŞTİRİLEBİLİR";
+                rankBadge.className = "inline-block px-3.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2";
+            }
+
+            const masteryGrid = document.getElementById('mastery-grid');
+            masteryGrid.innerHTML = '';
+
+            const orderedKeys = ['a', 'b', 'c', 'ç', 'd'];
+            const barColors = {
+                a: 'bg-rose-500',
+                b: 'bg-amber-500',
+                c: 'bg-cyan-500',
+                ç: 'bg-purple-500',
+                d: 'bg-emerald-500'
+            };
+
+            orderedKeys.forEach((key, idx) => {
+                const item = gameState.stats[key];
+                const pct = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+                const spanClass = idx === 4 ? 'sm:col-span-2' : '';
+                masteryGrid.innerHTML += `
+                    <div class="bg-slate-950/70 border border-slate-800 p-3.5 rounded-xl ${spanClass}">
+                        <div class="flex justify-between items-center text-xs font-semibold mb-1.5">
+                            <span class="text-slate-200">${item.label}</span>
+                            <span class="font-cyber text-amber-300">${item.correct}/${item.total} (%${pct})</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="${barColors[key]} h-full rounded-full transition-all duration-700" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ==========================================
+        // 6. UTILITIES
+        // ==========================================
+        function toggleOutcomesModal(show) {
+            playSound('click');
+            const modal = document.getElementById('outcomes-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function copySummaryToClipboard() {
+            const reportText = `TELİF KALKANI (BTY.6.4.2) SONUÇ RAPORU
+Öğrenci / Grup: ${gameState.playerName}
+Toplam Puan: ${gameState.score}
+- a) Merak Konusunu Tanımlama: ${gameState.stats.a.correct}/${gameState.stats.a.total}
+- b) Soru Sorma: ${gameState.stats.b.correct}/${gameState.stats.b.total}
+- c) Bilgi Toplama: ${gameState.stats.c.correct}/${gameState.stats.c.total}
+- ç) Bilginin Doğruluğunu Değerlendirme: ${gameState.stats.ç.correct}/${gameState.stats.ç.total}
+- d) Çıkarım Yapma: ${gameState.stats.d.correct}/${gameState.stats.d.total}`;
+
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = reportText;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            try {
+                document.execCommand('copy');
+                showToast("Sonuç raporu panoya kopyalandı!");
+            } catch (err) {
+                showToast("Kopyalama başarısız oldu.");
+            }
+            document.body.removeChild(tempTextarea);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-msg');
+            document.getElementById('toast-text').textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
